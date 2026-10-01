@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kamera Pendeteksi Objek</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+  
+    <section class="camera">
+      <div class="stage">
+        <video id="video" autoplay muted playsinline></video>
+        <canvas id="overlay"></canvas>
+        <p id="status" class="status">Memuat model…</p>
+      </div>
+      <div class="bar">
+        <span id="live">Belum ada deteksi</span>
+        <span id="db-status" class="badge">Firebase: menghubungkan…</span>
+        <button id="toggle" disabled>Mulai kamera</button>
+      </div>
+    </section>
+
+ 
+    <section class="history">
+      <div class="head">
+        <h2>Riwayat deteksi</h2>
+        <button id="clear" class="ghost">Hapus semua</button>
+      </div>
+      <ul id="list">
+        <li class="empty">Belum ada riwayat. Arahkan kamera ke sebuah objek.</li>
+      </ul>
+    </section>
+  </main>
+
+
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
+
+
+  <script type="module" src="script.js"></script>
+</body>
+</html>
