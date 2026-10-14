@@ -1,181 +1,116 @@
 :root {
-  --bg: #14181c;
-  --panel: #1d242b;
-  --line: #2b353e;
-  --text: #e8edf1;
-  --muted: #8b99a5;
-  --accent: #3dd6c6;
-  --danger: #ff7a7a;
+  --bg: #fdf4f6;
+  --card: #ffffff;
+  --line: #f3dfe5;
+  --text: #5b4650;
+  --muted: #a28a95;
+  --accent: #e8a3b8;      /* dusty pink */
+  --accent-soft: #fbe6ed;
+  --lav: #cdbfe8;         /* lavender */
+  --lav-soft: #efe9fa;
+  --ok: #7fbf9f;
+  --danger: #e58a8a;
+  --shadow: 0 8px 24px rgba(200, 140, 165, .15);
 }
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-}
+* { box-sizing: border-box; margin: 0; }
 
 body {
-  font-family: "Segoe UI", system-ui, sans-serif;
-  background: var(--bg);
+  font-family: "Poppins", "Segoe UI", system-ui, sans-serif;
+  background: linear-gradient(160deg, #fdf4f6 0%, #f4eefb 100%);
+  background-attachment: fixed;
   color: var(--text);
+  min-height: 100vh;
 }
 
 main {
-  max-width: 760px;
+  max-width: 720px;
   margin: 0 auto;
-  padding: 16px;
+  padding: 18px 16px 32px;
   display: grid;
-  gap: 20px;
+  gap: 18px;
 }
 
-/* ---------- Kamera (bagian atas) ---------- */
+.top { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+h1 { font-size: 20px; font-weight: 600; }
+h1 i, h2 i { color: var(--accent); margin-right: 6px; }
+h2 { font-size: 16px; font-weight: 600; }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  padding: 14px;
+  box-shadow: var(--shadow);
+}
+
+/* Kamera */
 .stage {
   position: relative;
   aspect-ratio: 4 / 3;
-  background: #000;
-  border-radius: 10px;
+  background: linear-gradient(135deg, var(--accent-soft), var(--lav-soft));
+  border-radius: 18px;
   overflow: hidden;
 }
+#video, #overlay { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.status { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); text-align: center; padding: 16px; font-size: 14px; }
+.status.hidden { display: none; }
 
-#video,
-#overlay {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.status {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  color: var(--muted);
-  text-align: center;
-  padding: 16px;
-}
-
-.status.hidden {
-  display: none;
-}
-
-.bar {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px 12px;
-  padding-top: 10px;
-  color: var(--muted);
+.live {
+  margin: 12px 4px 4px;
   font-size: 14px;
+  color: var(--muted);
+}
+.live i { color: var(--lav); margin-right: 6px; }
+
+/* Tombol kontrol */
+.controls { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 12px; }
+
+button { font: inherit; cursor: pointer; border: 0; transition: .2s; }
+button:disabled { opacity: .45; cursor: not-allowed; }
+button:focus-visible { outline: 2px solid var(--lav); outline-offset: 2px; }
+
+.ctrl {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 12px 8px;
+  border-radius: 18px;
+  background: var(--lav-soft);
+  color: var(--muted);
+  font-size: 13px; font-weight: 500;
+}
+.ctrl i { font-size: 20px; }
+.ctrl:not(:disabled):hover { transform: translateY(-2px); }
+.ctrl.on {
+  background: linear-gradient(135deg, var(--accent), var(--lav));
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(205, 150, 180, .35);
 }
 
-#live {
-  flex: 1 1 140px;
-}
+/* Badge */
+.badge { font-size: 12px; padding: 5px 12px; border-radius: 999px; background: var(--lav-soft); color: var(--muted); }
+.badge.online { background: #e6f5ed; color: #5aa57f; }
+.badge.offline { background: #fde8e8; color: var(--danger); }
 
-/* ---------- Badge status Firebase ---------- */
-.badge {
-  font-size: 12px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  border: 1px solid var(--line);
-  white-space: nowrap;
-}
+/* Riwayat */
+.head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.ghost { background: var(--accent-soft); color: var(--accent); padding: 6px 14px; border-radius: 999px; font-size: 13px; font-weight: 500; }
+.ghost:hover { background: var(--accent); color: #fff; }
 
-.badge.online {
+ul { list-style: none; padding: 0; display: grid; gap: 8px; }
+li { display: flex; align-items: center; gap: 12px; padding: 8px; background: #fffafb; border: 1px solid var(--line); border-radius: 16px; }
+li img { width: 72px; height: 54px; object-fit: cover; border-radius: 12px; background: var(--lav-soft); }
+li .label { font-weight: 600; text-transform: capitalize; }
+li .meta { font-size: 12px; color: var(--muted); }
+li .score { margin-left: auto; background: var(--accent-soft); color: var(--accent); font-weight: 600; font-size: 13px; padding: 4px 10px; border-radius: 999px; }
+li.empty { color: var(--muted); justify-content: center; padding: 20px; font-size: 14px; text-align: center; }
+
+/* Tombol hapus per item */
+.del {
+  background: var(--accent-soft);
   color: var(--accent);
-  border-color: var(--accent);
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
-
-.badge.offline {
-  color: var(--danger);
-  border-color: var(--danger);
-}
-
-/* ---------- Tombol ---------- */
-button {
-  font: inherit;
-  font-weight: 600;
-  padding: 8px 16px;
-  border: 0;
-  border-radius: 8px;
-  background: var(--accent);
-  color: #06201d;
-  cursor: pointer;
-}
-
-button:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-button.ghost {
-  background: transparent;
-  color: var(--muted);
-  border: 1px solid var(--line);
-}
-
-button:focus-visible {
-  outline: 2px solid #fff;
-  outline-offset: 2px;
-}
-
-/* ---------- Riwayat (bagian bawah) ---------- */
-.head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
-h2 {
-  font-size: 18px;
-}
-
-ul {
-  list-style: none;
-  padding: 0;
-  display: grid;
-  gap: 8px;
-}
-
-li {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-}
-
-li img {
-  width: 72px;
-  height: 54px;
-  object-fit: cover;
-  border-radius: 6px;
-  background: #000;
-}
-
-li .label {
-  font-weight: 600;
-  text-transform: capitalize;
-}
-
-li .meta {
-  font-size: 13px;
-  color: var(--muted);
-}
-
-li .score {
-  margin-left: auto;
-  color: var(--accent);
-  font-weight: 600;
-}
-
-li.empty {
-  color: var(--muted);
-  justify-content: center;
-  padding: 20px;
-}
+.del:hover { background: var(--accent); color: #fff; }

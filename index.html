@@ -4,41 +4,54 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Kamera Pendeteksi Objek</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <main>
-  
-    <section class="camera">
+    <header class="top">
+      <h1><i class="fa-solid fa-camera-retro"></i> Kamera Pendeteksi</h1>
+      <span id="db-status" class="badge"><i class="fa-solid fa-cloud"></i> <span>Menghubungkan…</span></span>
+    </header>
+
+    <section class="camera card">
       <div class="stage">
         <video id="video" autoplay muted playsinline></video>
         <canvas id="overlay"></canvas>
         <p id="status" class="status">Memuat model…</p>
       </div>
-      <div class="bar">
-        <span id="live">Belum ada deteksi</span>
-        <span id="db-status" class="badge">Firebase: menghubungkan…</span>
-        <button id="toggle" disabled>Mulai kamera</button>
+
+      <div id="live" class="live"><i class="fa-solid fa-eye"></i> <span>Belum ada deteksi</span></div>
+
+      <div class="controls">
+        <button id="btn-camera" class="ctrl">
+          <i class="fa-solid fa-video"></i><span>Kamera</span>
+        </button>
+        <button id="btn-switch" class="ctrl" disabled>
+          <i class="fa-solid fa-camera-rotate"></i><span>Putar</span>
+        </button>
+        <button id="btn-flash" class="ctrl" disabled>
+          <i class="fa-solid fa-bolt"></i><span>Flash</span>
+        </button>
+        <button id="btn-detect" class="ctrl" disabled>
+          <i class="fa-solid fa-expand"></i><span>Deteksi</span>
+        </button>
       </div>
     </section>
 
- 
-    <section class="history">
+    <section class="history card">
       <div class="head">
-        <h2>Riwayat deteksi</h2>
-        <button id="clear" class="ghost">Hapus semua</button>
+        <h2><i class="fa-solid fa-clock-rotate-left"></i> Riwayat deteksi</h2>
+        <button id="clear" class="ghost"><i class="fa-solid fa-trash-can"></i> Hapus</button>
       </div>
       <ul id="list">
-        <li class="empty">Belum ada riwayat. Arahkan kamera ke sebuah objek.</li>
+        <li class="empty">Belum ada riwayat. Nyalakan deteksi dan arahkan kamera ke objek.</li>
       </ul>
     </section>
   </main>
 
-
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
-
-
   <script type="module" src="script.js"></script>
 </body>
 </html>

@@ -25,15 +25,23 @@ const HISTORY_LIMIT = 20;
 const video     = document.getElementById("video");
 const overlay   = document.getElementById("overlay");
 const ctx       = overlay.getContext("2d");
-const liveEl    = document.getElementById("live");
+const liveEl    = document.querySelector("#live span");
 const dbStatus  = document.getElementById("db-status");
-const toggleBtn = document.getElementById("toggle");
+const dbText    = dbStatus.querySelector("span");
+const camBtn    = document.getElementById("btn-camera");
+const switchBtn = document.getElementById("btn-switch");
+const flashBtn  = document.getElementById("btn-flash");
+const detectBtn = document.getElementById("btn-detect");
 const clearBtn  = document.getElementById("clear");
 const listEl    = document.getElementById("list");
 
 let model = null;
 let stream = null;
-let running = false;
+let running = false;   // kamera menyala
+let detecting = false; // deteksi menyala
+let flashOn = false;
+let loopActive = false;
+let facing = "environment"; // "environment" = belakang, "user" = depan
 let fb = null; // diisi kalau Firebase berhasil
 const lastSaved = {};
 
@@ -45,8 +53,8 @@ async function loadModel() {
     }
     await tf.ready();
     model = await cocoSsd.load();
-    log("3/3 Model siap. Tekan “Mulai kamera”.");
-    toggleBtn.disabled = false;
+    log("Model siap. Tekan tombol Kamera.");
+    updateButtons();
   } catch (err) {
     log("GAGAL memuat model: " + err.message);
     console.error(err);
@@ -68,18 +76,18 @@ async function initFirebase() {
     const q = fs.query(ref, fs.orderBy("createdAt", "desc"), fs.limit(HISTORY_LIMIT));
     fs.onSnapshot(q, renderHistory, err => {
       console.error(err);
-      dbStatus.textContent = "Firebase: " + (err.code || "gagal");
+      dbText.textContent = "Firebase: " + (err.code || "gagal");
       dbStatus.className = "badge offline";
     });
   } catch (err) {
     console.error(err);
-    dbStatus.textContent = "Firebase: gagal dimuat";
+    dbText.textContent = "Firebase gagal";
     dbStatus.className = "badge offline";
   }
 }
 
 function renderHistory(snap) {
-  dbStatus.textContent = "Firebase: terhubung";
+  dbText.textContent = "Terhubung";
   dbStatus.className = "badge online";
   listEl.innerHTML = "";
   if (snap.empty) {
@@ -96,10 +104,26 @@ function renderHistory(snap) {
         <div class="label">${d.label}</div>
         <div class="meta">${time}</div>
       </div>
-      <span class="score">${Math.round(d.score * 100)}%</span>`;
+      <span class="score">${Math.round(d.score * 100)}%</span>
+      <button class="del" data-id="${doc.id}" title="Hapus">
+        <i class="fa-solid fa-trash-can"></i>
+      </button>`;
     listEl.appendChild(li);
   });
 }
+
+// Hapus satu item riwayat
+listEl.addEventListener("click", async (e) => {
+  const btn = e.target.closest(".del");
+  if (!btn || !fb) return;
+  btn.disabled = true;
+  try {
+    await fb.fs.deleteDoc(fb.fs.doc(fb.db, COLLECTION, btn.dataset.id));
+  } catch (err) {
+    console.error("Gagal menghapus:", err);
+    btn.disabled = false;
+  }
+});
 
 async function saveDetection(p) {
   if (!fb) return;
@@ -126,6 +150,7 @@ function snapshot() {
   return c.toDataURL("image/jpeg", 0.6);
 }
 
+// Hapus semua riwayat
 clearBtn.addEventListener("click", async () => {
   if (!fb || !confirm("Hapus semua riwayat deteksi?")) return;
   const snap = await fb.fs.getDocs(fb.ref);
@@ -135,48 +160,118 @@ clearBtn.addEventListener("click", async () => {
 });
 
 
-async function startCamera() {
-  try {
-    stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "environment" }, audio: false
-    });
-  } catch (err) {
-    log("Kamera gagal: " + err.message + " (buka lewat localhost & izinkan kamera)");
-    return;
-  }
+// ====== TOMBOL & KAMERA ======
+function updateButtons() {
+  camBtn.classList.toggle("on", running);
+  camBtn.querySelector("i").className = running ? "fa-solid fa-video" : "fa-solid fa-video-slash";
+  switchBtn.disabled = !running;
+  flashBtn.disabled = !running;
+  flashBtn.classList.toggle("on", flashOn);
+  detectBtn.disabled = !running || !model;
+  detectBtn.classList.toggle("on", detecting);
+}
+
+async function openStream() {
+  stream = await navigator.mediaDevices.getUserMedia({
+    video: { facingMode: { ideal: facing } }, audio: false
+  });
   video.srcObject = stream;
   await video.play();
   overlay.width = video.videoWidth;
   overlay.height = video.videoHeight;
+}
+
+async function startCamera() {
+  try {
+    await openStream();
+  } catch (err) {
+    log("Kamera gagal: " + err.message + " (buka lewat localhost/HTTPS & izinkan kamera)");
+    return;
+  }
   statusEl.classList.add("hidden");
   running = true;
-  toggleBtn.textContent = "Hentikan kamera";
-  detectLoop();
+  updateButtons();
 }
 
 function stopCamera() {
   running = false;
+  detecting = false;
+  flashOn = false;
   stream?.getTracks().forEach(t => t.stop());
+  stream = null;
   video.srcObject = null;
   ctx.clearRect(0, 0, overlay.width, overlay.height);
   statusEl.classList.remove("hidden");
-  log("Kamera dihentikan.");
-  toggleBtn.textContent = "Mulai kamera";
+  log("Kamera dimatikan.");
   liveEl.textContent = "Belum ada deteksi";
+  updateButtons();
 }
 
-toggleBtn.addEventListener("click", () => (running ? stopCamera() : startCamera()));
-
-
-async function detectLoop() {
+async function switchCamera() {
   if (!running) return;
+  facing = facing === "environment" ? "user" : "environment";
+  flashOn = false;
+  stream?.getTracks().forEach(t => t.stop());
+  try {
+    await openStream();
+  } catch (err) {
+    liveEl.textContent = "Gagal ganti kamera: " + err.message;
+  }
+  updateButtons();
+}
+
+async function toggleFlash() {
+  const track = stream?.getVideoTracks()[0];
+  if (!track) return;
+  try {
+    await track.applyConstraints({ advanced: [{ torch: !flashOn }] });
+    flashOn = !flashOn;
+    if (flashOn && track.getSettings().torch === false) throw new Error("torch off");
+  } catch (err) {
+    flashOn = false;
+    liveEl.textContent = "Flash tidak didukung di perangkat/browser ini.";
+  }
+  updateButtons();
+}
+
+function toggleDetect() {
+  detecting = !detecting;
+  if (detecting) {
+    detectLoop();
+  } else {
+    ctx.clearRect(0, 0, overlay.width, overlay.height);
+    liveEl.textContent = "Belum ada deteksi";
+  }
+  updateButtons();
+}
+
+camBtn.addEventListener("click", () => (running ? stopCamera() : startCamera()));
+switchBtn.addEventListener("click", switchCamera);
+flashBtn.addEventListener("click", toggleFlash);
+detectBtn.addEventListener("click", toggleDetect);
+updateButtons();
+
+
+// ====== DETEKSI ======
+async function detectLoop() {
+  if (loopActive) return;
+  loopActive = true;
+  while (running && detecting) {
+    await detectOnce();
+    await new Promise(requestAnimationFrame);
+  }
+  loopActive = false;
+}
+
+async function detectOnce() {
+  if (video.readyState < 2) return;
   const predictions = (await model.detect(video)).filter(p => p.score >= MIN_SCORE);
+  if (!detecting) return;
   draw(predictions);
   predictions.forEach(saveDetection);
   liveEl.textContent = predictions.length
     ? predictions.map(p => p.class).join(", ")
     : "Belum ada deteksi";
-  requestAnimationFrame(detectLoop);
 }
 
 function draw(predictions) {
@@ -186,12 +281,12 @@ function draw(predictions) {
   predictions.forEach(p => {
     const [x, y, w, h] = p.bbox;
     const text = `${p.class} ${Math.round(p.score * 100)}%`;
-    ctx.strokeStyle = "#3dd6c6";
+    ctx.strokeStyle = "#e8a3b8";
     ctx.strokeRect(x, y, w, h);
     const tw = ctx.measureText(text).width + 10;
-    ctx.fillStyle = "#3dd6c6";
+    ctx.fillStyle = "#e8a3b8";
     ctx.fillRect(x, Math.max(y - 24, 0), tw, 24);
-    ctx.fillStyle = "#06201d";
+    ctx.fillStyle = "#ffffff";
     ctx.fillText(text, x + 5, Math.max(y - 7, 17));
   });
 }
