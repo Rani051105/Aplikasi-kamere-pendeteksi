@@ -7,7 +7,6 @@ window.addEventListener("unhandledrejection", e =>
 
 log("1/3 script.js berjalan…");
 
-// ====== 1. KONFIGURASI ======
 const firebaseConfig = {
   apiKey: "AIzaSyDSmLKGhQKeBgwh38kW9e3MxbP4fR5C9Vo",
   authDomain: "expense-traker-mahasiswa.firebaseapp.com",
@@ -37,31 +36,39 @@ const listEl    = document.getElementById("list");
 
 let model = null;
 let stream = null;
-let running = false;   // kamera menyala
-let detecting = false; // deteksi menyala
+let running = false;   
+let detecting = false; 
 let flashOn = false;
 let loopActive = false;
-let facing = "environment"; // "environment" = belakang, "user" = depan
-let fb = null; // diisi kalau Firebase berhasil
+let facing = "environment"; 
+let fb = null; 
 const lastSaved = {};
+
+const wait = (ms) => new Promise(r => setTimeout(r, ms));
 
 async function loadModel() {
   try {
+    liveEl.textContent = "Memuat model deteksi…";
     log(`2/3 Memuat model… (tf: ${typeof tf}, cocoSsd: ${typeof cocoSsd})`);
     if (typeof tf === "undefined" || typeof cocoSsd === "undefined") {
       throw new Error("Library TensorFlow/COCO-SSD tidak termuat dari CDN. Cek koneksi internet.");
     }
     await tf.ready();
+    let ok = false;
+    try { ok = await tf.setBackend("webgl"); } catch { ok = false; }
+    if (!ok) await tf.setBackend("cpu");
+    await tf.ready();
     model = await cocoSsd.load();
     log("Model siap. Tekan tombol Kamera.");
+    liveEl.textContent = "Model deteksi siap.";
     updateButtons();
   } catch (err) {
     log("GAGAL memuat model: " + err.message);
+    liveEl.textContent = "Gagal memuat model: " + err.message;
     console.error(err);
   }
 }
 
-// ====== 4. FIREBASE (dimuat terpisah, tidak menghalangi model) ======
 async function initFirebase() {
   try {
     const base = "https://www.gstatic.com/firebasejs/10.12.2/";
@@ -112,7 +119,6 @@ function renderHistory(snap) {
   });
 }
 
-// Hapus satu item riwayat
 listEl.addEventListener("click", async (e) => {
   const btn = e.target.closest(".del");
   if (!btn || !fb) return;
@@ -150,7 +156,6 @@ function snapshot() {
   return c.toDataURL("image/jpeg", 0.6);
 }
 
-// Hapus semua riwayat
 clearBtn.addEventListener("click", async () => {
   if (!fb || !confirm("Hapus semua riwayat deteksi?")) return;
   const snap = await fb.fs.getDocs(fb.ref);
@@ -160,14 +165,13 @@ clearBtn.addEventListener("click", async () => {
 });
 
 
-// ====== TOMBOL & KAMERA ======
 function updateButtons() {
   camBtn.classList.toggle("on", running);
   camBtn.querySelector("i").className = running ? "fa-solid fa-video" : "fa-solid fa-video-slash";
   switchBtn.disabled = !running;
   flashBtn.disabled = !running;
   flashBtn.classList.toggle("on", flashOn);
-  detectBtn.disabled = !running || !model;
+  detectBtn.disabled = !running; // tetap bisa ditekan; pesan muncul kalau model belum siap
   detectBtn.classList.toggle("on", detecting);
 }
 
@@ -223,20 +227,34 @@ async function switchCamera() {
 async function toggleFlash() {
   const track = stream?.getVideoTracks()[0];
   if (!track) return;
+  if (facing === "user") {
+    liveEl.textContent = "Flash hanya ada di kamera belakang. Tekan Putar dulu.";
+    return;
+  }
+  const caps = track.getCapabilities?.() || {};
+  if (!("torch" in caps)) {
+    liveEl.textContent = "Browser/HP ini tidak mendukung flash lewat web. Coba Chrome di Android.";
+    return;
+  }
   try {
     await track.applyConstraints({ advanced: [{ torch: !flashOn }] });
     flashOn = !flashOn;
-    if (flashOn && track.getSettings().torch === false) throw new Error("torch off");
+    liveEl.textContent = flashOn ? "Flash menyala." : "Flash mati.";
   } catch (err) {
     flashOn = false;
-    liveEl.textContent = "Flash tidak didukung di perangkat/browser ini.";
+    liveEl.textContent = "Flash gagal: " + err.message;
   }
   updateButtons();
 }
 
 function toggleDetect() {
+  if (!model) {
+    liveEl.textContent = "Model deteksi belum siap, tunggu sebentar lalu coba lagi.";
+    return;
+  }
   detecting = !detecting;
   if (detecting) {
+    liveEl.textContent = "Mencari objek…";
     detectLoop();
   } else {
     ctx.clearRect(0, 0, overlay.width, overlay.height);
@@ -252,19 +270,28 @@ detectBtn.addEventListener("click", toggleDetect);
 updateButtons();
 
 
-// ====== DETEKSI ======
+
 async function detectLoop() {
   if (loopActive) return;
   loopActive = true;
-  while (running && detecting) {
-    await detectOnce();
-    await new Promise(requestAnimationFrame);
+  try {
+    while (running && detecting) {
+      try {
+        await detectOnce();
+      } catch (err) {
+        console.error(err);
+        liveEl.textContent = "Deteksi error: " + err.message;
+        await wait(500); // coba lagi, jangan berhenti
+      }
+      await new Promise(requestAnimationFrame);
+    }
+  } finally {
+    loopActive = false;
   }
-  loopActive = false;
 }
 
 async function detectOnce() {
-  if (video.readyState < 2) return;
+  if (video.readyState < 2 || !video.videoWidth) return;
   const predictions = (await model.detect(video)).filter(p => p.score >= MIN_SCORE);
   if (!detecting) return;
   draw(predictions);

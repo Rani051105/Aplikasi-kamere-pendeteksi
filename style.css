@@ -4,9 +4,9 @@
   --line: #f3dfe5;
   --text: #5b4650;
   --muted: #a28a95;
-  --accent: #e8a3b8;      /* dusty pink */
+  --accent: #e8a3b8;      
   --accent-soft: #fbe6ed;
-  --lav: #cdbfe8;         /* lavender */
+  --lav: #cdbfe8;         
   --lav-soft: #efe9fa;
   --ok: #7fbf9f;
   --danger: #e58a8a;
@@ -44,7 +44,6 @@ h2 { font-size: 16px; font-weight: 600; }
   box-shadow: var(--shadow);
 }
 
-/* Kamera */
 .stage {
   position: relative;
   aspect-ratio: 4 / 3;
@@ -63,7 +62,6 @@ h2 { font-size: 16px; font-weight: 600; }
 }
 .live i { color: var(--lav); margin-right: 6px; }
 
-/* Tombol kontrol */
 .controls { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 12px; }
 
 button { font: inherit; cursor: pointer; border: 0; transition: .2s; }
@@ -86,12 +84,10 @@ button:focus-visible { outline: 2px solid var(--lav); outline-offset: 2px; }
   box-shadow: 0 6px 16px rgba(205, 150, 180, .35);
 }
 
-/* Badge */
 .badge { font-size: 12px; padding: 5px 12px; border-radius: 999px; background: var(--lav-soft); color: var(--muted); }
 .badge.online { background: #e6f5ed; color: #5aa57f; }
 .badge.offline { background: #fde8e8; color: var(--danger); }
 
-/* Riwayat */
 .head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .ghost { background: var(--accent-soft); color: var(--accent); padding: 6px 14px; border-radius: 999px; font-size: 13px; font-weight: 500; }
 .ghost:hover { background: var(--accent); color: #fff; }
@@ -104,7 +100,6 @@ li .meta { font-size: 12px; color: var(--muted); }
 li .score { margin-left: auto; background: var(--accent-soft); color: var(--accent); font-weight: 600; font-size: 13px; padding: 4px 10px; border-radius: 999px; }
 li.empty { color: var(--muted); justify-content: center; padding: 20px; font-size: 14px; text-align: center; }
 
-/* Tombol hapus per item */
 .del {
   background: var(--accent-soft);
   color: var(--accent);
